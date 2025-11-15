@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-blue-900 to-black min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-light text-white mb-4">Weather Dashboard</h1>
+            <p class="text-blue-200 text-lg mb-2">Real-time weather information for any city worldwide</p>
+            <p class="text-blue-300 text-sm">Get current conditions, 5-day forecast, and hourly updates</p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="bg-gradient-to-r from-blue-800 to-blue-700 rounded-lg shadow-lg border border-blue-600 p-6 mb-8">
+            <div class="mb-4">
+                <h2 class="text-xl font-semibold text-white mb-2">Search Weather</h2>
+                <p class="text-blue-200 text-sm">Enter any city name to get instant weather information</p>
+            </div>
+            <form method="POST" class="flex flex-col md:flex-row gap-4">
+                <input type="text" name="city" placeholder="Enter city name..."
+                       value="{{ last_city }}" class="flex-1 px-4 py-3 rounded-md bg-gray-800 border border-blue-500 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent">
+                <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-md transition-all duration-300 font-medium shadow-lg">
+                    Search Weather
+                </button>
+            </form>
+            {% if error %}
+            <div class="mt-4 p-3 bg-red-900 border border-red-700 rounded-md text-red-200">
+                {{ error }}
+            </div>
+            {% endif %}
+        </div>
+
+        {% if weather_data %}
+        <!-- Current Weather -->
+        <div class="bg-gradient-to-r from-blue-800 to-blue-700 rounded-lg shadow-lg border border-blue-600 p-6 mb-8">
+            <div class="mb-4">
+                <h2 class="text-xl font-semibold text-white mb-2">Current Weather</h2>
+                <p class="text-blue-200 text-sm">Live weather conditions for your selected location</p>
+            </div>
+            <div class="flex flex-col lg:flex-row items-center justify-between mb-6">
+                <div class="text-center lg:text-left mb-4 lg:mb-0">
+                    <h2 class="text-2xl font-semibold text-white mb-1">{{ weather_data.name }}, {{ weather_data.sys.country }}</h2>
+                    <p class="text-blue-200">{{ weather_data.weather[0].description.title() }}</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-5xl font-light text-white mb-1">{{ convert_temp(weather_data.main.temp, temp_unit) }}°{{ 'F' if temp_unit == 'fahrenheit' else 'C' }}</div>
+                    <p class="text-blue-200 text-sm">Feels like {{ convert_temp(weather_data.main.feels_like, temp_unit) }}°{{ 'F' if temp_unit == 'fahrenheit' else 'C' }}</p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h3 class="text-lg font-medium text-white mb-3">Weather Details</h3>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="text-center">
+                    <div class="text-blue-300 text-sm uppercase tracking-wide">Humidity</div>
+                    <div class="text-white font-medium">{{ weather_data.main.humidity }}%</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-blue-300 text-sm uppercase tracking-wide">Wind Speed</div>
+                    <div class="text-white font-medium">{{ weather_data.wind.speed }} m/s</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-blue-300 text-sm uppercase tracking-wide">Visibility</div>
+                    <div class="text-white font-medium">{{ weather_data.visibility // 1000 }} km</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-blue-300 text-sm uppercase tracking-wide">Pressure</div>
+                    <div class="text-white font-medium">{{ weather_data.main.pressure }} hPa</div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-4 border-t border-blue-600">
+                <div class="text-center">
+                    <div class="text-blue-300 text-sm uppercase tracking-wide">Sunrise</div>
+                    <div class="text-white font-medium">{{ format_time(weather_data.sys.sunrise) }}</div>
+                </div>
+                <button id="toggle-unit" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-md transition-all duration-300 shadow-md">
+                    °{{ 'C' if temp_unit == 'fahrenheit' else 'F' }}
+                </button>
+                <div class="text-center">
+                    <div class="text-blue-300 text-sm uppercase tracking-wide">Sunset</div>
+                    <div class="text-white font-medium">{{ format_time(weather_data.sys.sunset) }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if forecast_data %}
+        <!-- 5-Day Forecast -->
+        <div class="bg-gradient-to-r from-blue-800 to-blue-700 rounded-lg shadow-lg border border-blue-600 p-6 mb-8">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-white mb-2">5-Day Forecast</h3>
+                <p class="text-blue-200 text-sm">Plan ahead with accurate weather predictions for the next 5 days</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                {% for day in forecast_data.list[::8] %}
+                <div class="bg-gradient-to-b from-blue-900 to-blue-800 rounded-lg p-4 text-center border border-blue-600 shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <div class="text-white font-medium mb-2">{{ get_day_name(day.dt_txt.split(' ')[0]) }}</div>
+                    <div class="text-2xl mb-2">🌤️</div>
+                    <div class="text-white font-semibold">{{ convert_temp(day.main.temp_max, temp_unit) }}°{{ 'F' if temp_unit == 'fahrenheit' else 'C' }}</div>
+                    <div class="text-blue-200 text-sm">{{ convert_temp(day.main.temp_min, temp_unit) }}°{{ 'F' if temp_unit == 'fahrenheit' else 'C' }}</div>
+                    <div class="text-blue-200 text-sm mt-2">{{ day.weather[0].description.title() }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Hourly Forecast -->
+        <div class="bg-gradient-to-r from-blue-800 to-blue-700 rounded-lg shadow-lg border border-blue-600 p-6">
+            <div class="mb-4">
+                <h3 class="text-xl font-semibold text-white mb-2">Today's Hourly Forecast</h3>
+                <p class="text-blue-200 text-sm">Detailed weather updates for the next 8 hours</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                {% for hour in forecast_data.list[:8] %}
+                <div class="bg-gradient-to-b from-blue-900 to-blue-800 rounded-lg p-4 text-center border border-blue-600 shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <div class="text-blue-200 text-sm mb-2">{{ format_time(hour.dt) }}</div>
+                    <div class="text-xl mb-2">🌤️</div>
+                    <div class="text-white font-semibold">{{ convert_temp(hour.main.temp, temp_unit) }}°{{ 'F' if temp_unit == 'fahrenheit' else 'C' }}</div>
+                    <div class="text-blue-200 text-sm">{{ hour.weather[0].description.title() }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
