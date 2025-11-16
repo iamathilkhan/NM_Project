@@ -135,4 +135,4 @@ If you encounter any issues or have questions, please open an issue on GitHub.
 
 ---
 
-**Note**: This project is for educational and personal use. Ensure compliance with OpenWeatherMap's terms of service when deploying.
+*Built with ❤️ using Flask, HTML , CSS  and a passion for Technology*
